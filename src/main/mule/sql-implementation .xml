@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<configuration-properties doc:name="Configuration properties" doc:id="ca12c14b-9594-4719-a26a-5ca1a1bc5c09" file="properties\dev.yaml" />
+	<db:config name="Database_Config" doc:name="Database Config" doc:id="8baad0ac-8293-4a6a-9eba-0f1733afe380" >
+		<db:my-sql-connection host="${sql.host}" port="${sql.port}" user="${sql.user}" password="${sql.password}" database="${sql.database}" />
+	</db:config>
+	<flow name="Get_Flow_sql-implementation" doc:id="cae9326f-c0d3-49c0-9c7a-a2271295c1f0" >
+		<logger level="INFO" doc:name="Logger" doc:id="659d580f-d105-40a0-ba31-50a028512e17" message='#["flow get started"]'/>
+		<db:select doc:name="Select" doc:id="96c0e340-f118-4592-acef-4345d1fe21ce" config-ref="Database_Config">
+			<db:sql ><![CDATA[select * from employees
+where employeeid = :employeeID]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+	"employeeID": attributes.queryParams.employeeID as Number
+	
+}]]]></db:input-parameters>
+		</db:select>
+		<logger level="INFO" doc:name="Logger" doc:id="cb1c0b8b-50b1-4228-b151-9ebddc98849d" message="#[payload]"/>
+		<ee:transform doc:name="Transform Message" doc:id="83ab61b9-c01a-4ec9-8a34-01cfbe0f3a9b" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="Post_flow_sql-implementation" doc:id="0c3805db-63c7-4aa1-ba10-75c35b473350" >
+		<logger level="INFO" doc:name="Logger" doc:id="d9765e01-c7c9-441b-8f4f-8ca163fff040" message='#["flow post started"]'/>
+		<ee:transform doc:name="Transform Message" doc:id="089bf283-18a5-4eb5-a1ab-c1e6878bf9d0" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload map ((item) -> 
+	{
+		employeeid: item.EmployeeId as Number,
+		firstname: item.Firstname,
+		lastname: item.Lastname,
+		age: item.Age as Number,
+		gender:item.Gender,
+		bloodgroup:item.BloodGroup,
+		email:item.EmailId,
+		phone_number:item.PhoneNumber
+	}
+)]]></ee:set-payload>
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="insertQuery" ><![CDATA["insert into employees (employeeid, firstname, lastname, age, gender, bloodgroup, email, phone_number)
+values (:employeeid, :firstname, :lastname, :age, :gender, :bloodgroup, :email, :phone_number)"]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<db:bulk-insert doc:name="Bulk insert" doc:id="d2c8af39-9bee-454b-96bf-4c8904fe010e" config-ref="Database_Config">
+			<db:sql ><![CDATA[#[vars.insertQuery]]]></db:sql>
+		</db:bulk-insert>
+		<logger level="INFO" doc:name="Logger" doc:id="8bd25a16-3d4c-49b2-bd3c-bbd2eddb5d2d" message="#[payload]"/>
+		<ee:transform doc:name="Transform Message" doc:id="c5ab93ee-5b26-4ee5-ba0c-0fa3854363ab" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+</mule>

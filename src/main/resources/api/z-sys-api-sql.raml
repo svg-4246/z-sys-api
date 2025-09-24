@@ -1,0 +1,51 @@
+#%RAML 1.0
+title: z-sys-api-sql
+
+
+types:
+  sql-dataType: !include /dataType.raml
+
+
+/Employee:
+  get:
+    description: Get the Employee details
+    queryParameters:
+      employeeID:
+        description: enter employee id
+        type: integer
+    responses:
+      200:
+        body:
+          application/json:
+            example: !include /example.json
+      400:
+        body:
+          application/json:
+            example:
+              {
+                "message": "employee not found"
+              }
+
+  post:
+    description: Create a employee
+    body:
+      application/json:
+        type: sql-dataType
+        example: !include /example.json
+    responses:
+      201:
+        description: created successful
+        body:
+          application/json:
+            example:
+              {
+                "message": " record created successfully"
+              }
+      400:
+        body:
+          application/json:
+            example:
+              {
+              "message" : "recoed not created"
+            }
+              
